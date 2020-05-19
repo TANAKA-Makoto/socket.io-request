@@ -7,7 +7,7 @@ export default class SocketIORequest {
     this.options = Object.assign({
       event: 'socket.io-request',
       timeout: 90000
-    }, options)
+    }, options)  //event timeoutを上書き
   }
 
   request (method, data) {
@@ -35,17 +35,20 @@ export default class SocketIORequest {
     })
   }
 
-  response (method, ...middlewares) {
+  response (method, ...middlewares) {//ここでいうmethodは本来のeventのことか
     if (typeof method !== 'string') throw new Error('argument "method" is missing')
     if (middlewares.find(m => typeof m !== 'function')) {
       throw new Error('"middlewares" must be a function')
-    }
-    const combined = combineMiddlewares(...middlewares.concat())
+    }// middlewares全てが tyoe functionである
+    const combined = combineMiddlewares(...middlewares.concat())// middlewares をchainに
+
     this.io.on(this.options.event, (req, ack) => {
-      if (req.method !== method) return
-      const res = data => ack({data})
+      if (req.method !== method) return//二重登録を防ぐ
+      const res = data => {console.log('data is ' + data); return ack({data})}
       res.error = err => ack({error: convertErrorToObject(err)})
+      console.log(res)
       combined(req.data, res)
     })
+
   }
 }
