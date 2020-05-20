@@ -15,16 +15,17 @@ export default class SocketIORequest {
     if (typeof method !== 'string') throw new Error('argument "method" is missing')
 
     return new Promise((resolve, reject) => {
-      this.io.emit(this.options.event, {method, data}, (res) => {
+      this.io.emit(this.options.event, {method, data}/*分割代入*/, (res) => {
         /*lisneterがわackでの返答をresで受けて走る*/
         clearTimeout(timeout)//タイムアウト解除
         this.io.removeListener('disconnect', onDisconnect)
-        /*disconnect listenerを外す？ onDisconnect は外し終わったときに実行？*/
+        /*disconnect event list から toDisconnectを外す*/
         if (res.error) return reject(convertObjectToError(res.error))
         resolve(res.data)//promise->resolve
       })
 
       const onDisconnect = () => {
+        //disconnect処理、タイムアウト消して、promiseをreject
         clearTimeout(timeout)
         reject(new SocketIOError('disconnect'))//disconnectのerrorをだす
       }
@@ -35,7 +36,7 @@ export default class SocketIORequest {
         reject(new TimeoutError(`exceeded ${this.options.timeout} (msec)`))
       }, this.options.timeout)
 
-      this.io.once('disconnect', onDisconnect)//一度呼び出されると、外れるリスナーを定義
+      this.io.once('disconnect', onDisconnect)  //一度呼び出されると、外れるリスナーを定義
     })
   }
 
