@@ -11,27 +11,31 @@ export default class SocketIORequest {
   }
 
   request (method, data) {
+    /*返り値はpromise*/
     if (typeof method !== 'string') throw new Error('argument "method" is missing')
 
     return new Promise((resolve, reject) => {
       this.io.emit(this.options.event, {method, data}, (res) => {
-        clearTimeout(timeout)
+        /*lisneterがわackでの返答をresで受けて走る*/
+        clearTimeout(timeout)//タイムアウト解除
         this.io.removeListener('disconnect', onDisconnect)
+        /*disconnect listenerを外す？ onDisconnect は外し終わったときに実行？*/
         if (res.error) return reject(convertObjectToError(res.error))
-        resolve(res.data)
+        resolve(res.data)//promise->resolve
       })
 
       const onDisconnect = () => {
         clearTimeout(timeout)
-        reject(new SocketIOError('disconnect'))
+        reject(new SocketIOError('disconnect'))//disconnectのerrorをだす
       }
 
       const timeout = setTimeout(() => {
+        /*this.potions.timeout後にdisconectイベントを消去し、タイムアウトエラーを投げる*/
         this.io.removeListener('disconnect', onDisconnect)
         reject(new TimeoutError(`exceeded ${this.options.timeout} (msec)`))
       }, this.options.timeout)
 
-      this.io.once('disconnect', onDisconnect)
+      this.io.once('disconnect', onDisconnect)//一度呼び出されると、外れるリスナーを定義
     })
   }
 
@@ -43,11 +47,12 @@ export default class SocketIORequest {
     const combined = combineMiddlewares(...middlewares.concat())// middlewares をchainに
 
     this.io.on(this.options.event, (req, ack) => {
+      /*ackは呼べばemitに返答できる*/
       if (req.method !== method) return//二重登録を防ぐ
       const res = data => {console.log('data is ' + data); return ack({data})}
       res.error = err => ack({error: convertErrorToObject(err)})
       console.log(res)
-      combined(req.data, res)
+      combined(req.data, res)  //処理本体
     })
 
   }
